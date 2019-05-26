@@ -1,9 +1,15 @@
-const express = require('express')
-const router = express.Router()
-const dbController = require('../../controllers/db')
+const express = require("express");
+const router = express.Router();
+const dealController = require("../../controllers/deals");
+const passport = require("../../config/passport");
 
-router.post('/', (req, res) => dbController.create(req, res, 'deals'))
-router.delete('/:dealid', (req, res) => dbController.remove(req, res, 'deals'))
-router.put('/', (req, res) => dbController.update(req, res, 'deals'))
+router.post("/", passport.authenticateJWT, dealController.create);
+router.delete("/:dealid", passport.authenticateJWT, dealController.remove);
+router.put("/move/:dealid", passport.authenticateJWT, dealController.move);
+router.put(
+  "/:dealid/:clientid",
+  passport.authenticateJWT,
+  dealController.update
+);
 
-module.exports = router
+module.exports = router;

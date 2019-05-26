@@ -212,14 +212,15 @@ create table Users (
    UserID               SERIAL               not null,
    UsersCompaniesID     INT4                 null,
    UserName             VARCHAR(150)         not null,
-   UserPhone            VARCHAR(150)         not null,
+   UserPhone            VARCHAR(150)         null,
    UserEmail            VARCHAR(150)         not null,
-   UserPassword         VARCHAR(255)         not null,
+   UserPassword         TEXT                 not null,
    UserType             VARCHAR(30)          null default 'Manager',
    UserActivated        BOOL                 null default false,
-   UserActivationDueDate DATE                 null,
+   UserActivationDueDate DATE                null,
    UserPhoto            TEXT                 null,
    UserFullName         VARCHAR(200)         null,
+   Salt                 TEXT                 not null,
    constraint PK_USERS primary key (UserID)
 );
 

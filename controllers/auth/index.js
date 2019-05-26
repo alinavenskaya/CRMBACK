@@ -1,73 +1,50 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt-nodejs');
-const db = require('knex')({
-  client: 'pg',
+const jwt = require("jsonwebtoken");
+// const bcrypt = require("bcrypt-nodejs");
+const crypto = require("crypto");
+const db = require("knex")({
+  client: "pg",
   connection: process.env.POSTGRES_URI
 });
-const config = require('../../config/db');
+const config = require("../../config/db");
+const PassportManager = require("../../config/passport");
 
-const signUp = (req, res) => {
-  const { username, password: userpassword, email: useremail } = req.body;
+const signUp = async (req, res) => {
+  const { username, password: userpassword, email: useremail } = req.body.user;
   if (!username || !userpassword || !useremail) {
-    res.json({
+    res.status(422).json({
       success: false,
-      msg: 'Пожалуйтса введите имя пользователя и пароль'
+      msg: "Пожалуйтса введите имя пользователя и пароль"
     });
   } else {
-    bcrypt.genSalt(10, (err, salt) => {
-      if (err) return err;
-      return bcrypt.hash(userpassword, salt, null, (err, hash) => {
-        if (err) return err;
-        // insert user
-        return (async () => {
-          const [userData] = await db('users')
-            .insert({ username, userpassword: hash, useremail })
-            .returning(['username', 'userpassword', 'usertype']);
-          // send email confirmation
-          //   sendActivation(userData);
-          const token = jwt.sign(userData, config.secret, {
-            expiresIn: '30d'
-          });
-          return res.json({ success: true, token: `JWT ${token}` });
-        })();
-      });
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto
+      .pbkdf2Sync(userpassword, salt, 10000, 512, "sha512")
+      .toString("hex");
+
+    const [userData] = await db("users")
+      .insert({ username, userpassword: hash, useremail, salt })
+      .returning(["userid", "username", "usertype"]);
+
+    const token = jwt.sign(userData, config.secret, {
+      expiresIn: "30d"
+    });
+    return res.json({
+      user: { ...userData, token },
+      success: true
     });
   }
 };
 
-const signIn = (req, res) => {
-  const { username, password } = req.body;
-  (async () => {
-    const [user] = await db
-      .select('username', 'usertype', 'userpassword')
-      .from('users')
-      .where({ username });
-    if (!user) {
-      res.status(401).send({
-        success: false,
-        msg: 'Ошибка авторизации. Пользователь не найден.'
-      });
-    } else {
-      // check if password matches
-      bcrypt.compare(password, user.userpassword, (err, isMatch) => {
-        if (isMatch && !err) {
-          // if user is found and password is right create a token
-          const token = jwt.sign(user, config.secret, {
-            expiresIn: '30d'
-          });
-          // return the information including token as JSON
-          return res.json({ success: true, token: `JWT ${token}` });
-        }
-        return res.status(401).send({
-          success: false,
-          msg: 'Ошибка авторизации. Неправильный пароль.'
-        });
-      });
-    }
-  })();
+const signIn = (req, res, next) => {
+  PassportManager.authenticateLocal(req, res, next);
 };
 
+const getUser = (req, res) => {
+  const user = req.user;
+  res.status(200).json({ user });
+};
 module.exports = {
   signUp,
   signIn,
+  getUser
 };

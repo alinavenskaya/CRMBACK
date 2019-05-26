@@ -1,21 +1,21 @@
 -- Deal Insert
 CREATE FUNCTION deal_insert_log() RETURNS trigger AS $deal_insert_log$
 BEGIN
-  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (NEW.userid,'Сделка',NEW.dealid,'Добавлена сделка');
+  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (NEW.userid,'Сделка',NEW.dealid,'Сделка добавлена');
   RETURN NEW;
 END;
 $deal_insert_log$ LANGUAGE plpgsql;
 -- Deal Update
 CREATE FUNCTION deal_update_log() RETURNS trigger AS $deal_update_log$
 BEGIN
-  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (NEW.userid,'Сделка',NEW.dealid,'Добавлена обновлена');
+  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (NEW.userid,'Сделка',NEW.dealid,'Сделка обновлена');
   RETURN NEW;
 END;
 $deal_update_log$ LANGUAGE plpgsql;
 -- Deal Delete
 CREATE FUNCTION deal_delete_log() RETURNS trigger AS $deal_delete_log$
 BEGIN
-  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (OLD.userid,'Сделка',OLD.dealid,'Добавлена удалена');
+  INSERT INTO "actionlog"("userid","objecttype","objectid","actiontype") VALUES (OLD.userid,'Сделка',OLD.dealid,'Сделка удалена');
   RETURN OLD;
 END;
 $deal_delete_log$ LANGUAGE plpgsql;
@@ -75,7 +75,7 @@ EXECUTE PROCEDURE deal_update_log();
 CREATE TRIGGER dealdelete
 AFTER DELETE ON deals
 FOR EACH ROW
-EXECUTE PROCEDURE client_delete_log();
+EXECUTE PROCEDURE deal_delete_log();
 
 CREATE TRIGGER clientinsert
 AFTER INSERT ON clients

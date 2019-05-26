@@ -1,9 +1,11 @@
-const express = require('express')
-const router = express.Router()
-const dbController = require('../../controllers/db')
+const express = require("express");
+const router = express.Router();
+const taskController = require("../../controllers/tasks");
+const passport = require("../../config/passport");
 
-router.post('/', (req, res) => dbController.create(req, res, 'tasks'))
-router.delete('/:taskid', (req, res) => dbController.remove(req, res, 'tasks'))
-router.put('/', (req, res) => dbController.update(req, res, 'tasks'))
+router.post("/:dealid", passport.authenticateJWT, taskController.create);
+router.delete("/:taskid", passport.authenticateJWT, taskController.remove);
+router.put("/:taskid", passport.authenticateJWT, taskController.update);
+router.get("/:dealid", passport.authenticateJWT, taskController.all);
 
-module.exports = router
+module.exports = router;

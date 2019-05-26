@@ -3,51 +3,50 @@ RETURNS TABLE
 (j JSON) AS
 $BODY$
 BEGIN
-    RETURN QUERY
+  RETURN QUERY
 SELECT row_to_json(r, true)
 FROM (
-    SELECT
-        stages.stageid,   
-        stages.stagename, 
-        json_agg(deals_row) AS deals
-    FROM stages
-    LEFT JOIN (
-        SELECT  
-            deals.dealid,       
-            deals.dealname,
-            deals.stageid,
-            deals.dealprice,  
-            json_agg(manager_row) AS user,
-            json_agg(client_row) AS client
-        FROM deals
-        INNER JOIN (
-      			SELECT
-              userid,
-      				username,
-      				userphoto
-      			FROM
-      				users
-      		) AS manager_row(id,name, avatar) ON (manager_row.id = deals.userid)
-        INNER JOIN(
-          SELECT
-            clientid,
-            clientcompanyname,
-            clientname,
-            clientphone,
-            clientemail
-          FROM clients
-        ) as client_row(id,company,name,phone,email) ON (client_row.id = deals.dealid )
-              GROUP BY deals.dealid 
-    ) deals_row(id, name,stageid, price, manager, client) ON (deals_row.stageid = stages.stageid)
-        -- WHERE stage.pipelineid = 1
-    GROUP BY stages.stageid
+  SELECT
+    stages.stageid,   
+    stages.stagename, 
+    json_agg(deals_row) AS deals
+  FROM stages
+  LEFT JOIN (
+    SELECT  
+        deals.dealid,       
+        deals.dealname,
+        deals.stageid,
+        deals.dealprice,  
+        json_agg(manager_row)->0 AS user,
+        json_agg(client_row)->0 AS client
+    FROM deals
+    INNER JOIN (
+      SELECT
+        userid,
+        username,
+        userphoto
+      FROM
+        users
+    ) AS manager_row(id,name, avatar) ON (manager_row.id = deals.userid)
+    INNER JOIN(
+      SELECT
+        clientid,
+        clientcompanyname,
+        clientname,
+        clientphone,
+        clientemail
+      FROM clients
+    ) as client_row(id,company,name,phone,email) ON (client_row.id = deals.clientid)
+    GROUP BY deals.dealid 
+  ) deals_row(id, name,stageid, price, manager, client) ON (deals_row.stageid = stages.stageid)
+  GROUP BY stages.stageid
 ) r(id, name, deals);
 END;
 $BODY$ LANGUAGE plpgsql;
 
 -- Users -- UsersCompanies -- Pipelines -- Stages -- Deals -- Users asManagers
 
-CREATE FUNCTION dashboard()
+CREATE FUNCTION dashboard(USERIDENTIFIER INT4)
 RETURNS TABLE
 (j JSON) AS
 $BODY$
@@ -77,7 +76,7 @@ BEGIN
               GROUP BY stageid
 					    HAVING stageid=3
             ) as a --END FROM
-            ) as sentco, -- END SELECT,
+            ) as sentoffer, -- END SELECT,
 
             (SELECT json_agg(a)->0 FROM (
               SELECT SUM(dealprice) as sumprice, COUNT(dealprice) as countdeals
@@ -106,9 +105,9 @@ BEGIN
             (
               SELECT COUNT(taskname) as taskscount
               FROM tasks 
-              WHERE taskdate < CURRENT_TIMESTAMP
+              WHERE taskdate < CURRENT_TIMESTAMP AND taskstatus = false  
               GROUP BY userid
-					    HAVING userid=1 
+					    HAVING userid=USERIDENTIFIER
             
             ) as overdue, -- END SELECT,
 
@@ -116,7 +115,7 @@ BEGIN
               FROM tasks
               WHERE taskdate > CURRENT_TIMESTAMP AND taskstatus = false 
               GROUP BY userid
-					    HAVING userid=1 
+					    HAVING userid=USERIDENTIFIER 
               
             ) as todo, -- END SELECT,
 
@@ -124,7 +123,7 @@ BEGIN
               FROM tasks
               WHERE taskdate > CURRENT_TIMESTAMP AND taskstatus = true 
               GROUP BY userid
-					    HAVING userid=1 
+					    HAVING userid=USERIDENTIFIER 
               
             ) as done, -- END SELECT,
 
@@ -140,7 +139,7 @@ BEGIN
 
             (SELECT json_agg(a)->0 FROM (
               SELECT
-                (SELECT SUM(dealprice) as sumprice FROM deals ) as income,
+                (SELECT SUM(dealprice) as sumprice FROM deals WHERE stageid=6) as income,
                 (SELECT goalvalue FROM goals ORDER BY goaldate LIMIT 1) as goal
               ) as a 
             ) as incomechart

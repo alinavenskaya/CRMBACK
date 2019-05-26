@@ -1,7 +1,8 @@
-const express = require('express')
-const router = express.Router()
-const dbController = require('../../controllers/db')
+const express = require("express");
+const router = express.Router();
+const clients = require("../../controllers/clients");
+const passport = require("../../config/passport");
 
-router.get('/:userid', (req, res) => dbController.getAll(req, res, 'clients'))
+router.get("/", passport.authenticateJWT, clients.all);
 
-module.exports = router
+module.exports = router;
